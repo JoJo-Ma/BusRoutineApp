@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "scheme": "acme",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "bus-routine-app",
+    "slug": "bus-routine-app"
+  }
+}
