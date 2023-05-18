@@ -1,7 +1,8 @@
 import React, { useState, useContext } from "react";
-import { SafeAreaView } from "react-native";
 import { Button, TextInput } from 'react-native-paper';
-import { ApiContext } from '../context/ApiContext';
+import { ApiContext } from '../contexts/ApiContext';
+import { View } from "react-native";
+import GlobalStyles from "../styles/GlobalStyles";
 
 const Search = ({ onPress }) => {
     const [text, setText] = useState('');
@@ -10,16 +11,18 @@ const Search = ({ onPress }) => {
 
 
     return (
-        <SafeAreaView>
+        <View>
             <TextInput
+                mode="outlined"
                 placeholder="Search"
                 onChangeText={text => setText(text)}
                 value={text}
+                style={GlobalStyles.mediumMargin}
             />
             <Button onPress={() => onPress(text)} mode="contained">
                 Search
             </Button>
-        </SafeAreaView>
+        </View>
     )
 
 

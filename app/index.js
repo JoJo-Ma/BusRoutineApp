@@ -1,35 +1,47 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { Link } from "expo-router";
+import { useContext, useEffect } from "react";
+import { BusGroupsContext, BusGroupsDispatchContext } from "../contexts/BusGroupsContext";
+import GroupTimeEstimate from "../components/GroupTimeEstimate";
+import GlobalStyles from "../styles/GlobalStyles";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export default function Page() {
+  const { busGroups } = useContext(BusGroupsContext);
+  const dispatch = useContext(BusGroupsDispatchContext);
+
+  useEffect(() => {
+    const getLocalStorage = async () => {
+        try {
+            const busGroups = await AsyncStorage.getItem('busGroups');
+            console.log('busGroups', typeof JSON.parse(busGroups), busGroups);
+            console.log(dispatch);
+            if (busGroups) {
+                dispatch({
+                    type: 'SET_BUS_GROUPS',
+                    payload: {
+                        busGroups: JSON.parse(busGroups),
+                    },
+                });
+            }
+        } catch (error) {
+            console.log('error', error);
+        }
+    }
+    getLocalStorage();
+}, [])
+
   return (
-    <View style={styles.container}>
-      <View style={styles.main}>
-        <Text style={styles.title}>Hello World</Text>
-        <Link href="/config">Config</Link>
-      </View>
-    </View>
+    <ScrollView style={GlobalStyles.container}>
+        { busGroups && busGroups.length > 0 ?
+          busGroups.map((busGroup) => {
+            if (busGroup.data.length === 0) return;
+            return (<GroupTimeEstimate key={busGroup.id} groupId={busGroup.id} />) 
+          }
+          )
+          : <Text style={GlobalStyles.emptyList}>No groups configured yet</Text>
+        }
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    padding: 24,
-  },
-  main: {
-    flex: 1,
-    justifyContent: "center",
-    maxWidth: 960,
-    marginHorizontal: "auto",
-  },
-  title: {
-    fontSize: 64,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    fontSize: 36,
-    color: "#38434D",
-  },
-});

@@ -1,12 +1,12 @@
 import React, { useEffect, useContext, useState } from "react";
 import { CLIENT_ID, CLIENT_SECRET } from "@env";
-import { ApiContext, ApiDispatchContext } from '../context/ApiContext';
+import { ApiContext, ApiDispatchContext } from '../contexts/ApiContext';
 import axios from "axios";
 
 const requestData = {
     'grant_type': 'client_credentials',
     'client_id': CLIENT_ID,
-    'client_secret': CLIENT_SECRET 
+    'client_secret': CLIENT_SECRET
   };
 
 let requestConfig = {

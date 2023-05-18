@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { CLIENT_ID, CLIENT_SECRET } from "@env";
-import { Link } from "expo-router";
-import { List, TextInput, Button } from 'react-native-paper';
-import Search from "../components/Search";
-import useBearerToken from "../hooks/useBearerToken";
+import { Link, useSearchParams } from "expo-router";
+import { List, TextInput, Button, Divider } from 'react-native-paper';
+// import Search from "../../components/Search";
+import useBearerToken from "../../hooks/useBearerToken";
 import axios from "axios";
+import { BusGroupsContext, BusGroupsDispatchContext } from "../../contexts/BusGroupsContext";
+import SnackbarComponent from "../../components/Snackbar";
+import GlobalStyles from "../../styles/GlobalStyles";
+import Search from "../../components/Search";
+import Theme from "../../styles/Theme";
 
 const cities = [{
     name: 'Taipei',
@@ -16,7 +21,8 @@ const cities = [{
 }
 ]
 
-export default function Config() {
+export default function Route() {
+    const [busGroup, setBusGroup] = useState(null);
     const [busStops, setBusStops] = useState([]);
     const [busStopFilter, setBusStopFilter] = useState('');
     const [filteredBusStops, setFilteredBusStops] = useState([]);
@@ -25,6 +31,11 @@ export default function Config() {
     const [direction, setDirection] = useState(0);
     const [selectedStop, setSelectedStop] = useState(null);
     const [estimatedTimeOfArrival, setEstimatedTimeOfArrival] = useState(null);
+    const { route } = useSearchParams();
+    const { busGroups } = useContext(BusGroupsContext);
+    const busGroupsDispatch = useContext(BusGroupsDispatchContext);
+    const [snackbarVisible, setSnackbarVisible] = useState(false);
+
 
     const handleCityChosen = (city) => {
         setSelectedCity(city);
@@ -65,11 +76,12 @@ export default function Config() {
         setEstimatedTimeOfArrival(res.data[0].EstimateTime);
     }
 
-    const getStopsFromRoute = async (routeName) => {
+    const getStopsFromRoute = async (routeName, city) => {
+        city = city || selectedCity;
         if (!token) {
             return;
         }
-        const res = await axios.get(`https://tdx.transportdata.tw/api/basic/v2/Bus/DisplayStopOfRoute/City/${selectedCity.value}/${routeName}`,
+        const res = await axios.get(`https://tdx.transportdata.tw/api/basic/v2/Bus/DisplayStopOfRoute/City/${city.value}/${routeName}`,
         {
             params: {
                 $format: 'JSON',
@@ -81,15 +93,50 @@ export default function Config() {
             }
         })
         console.log(res.data);
-        setBusStops(res.data);
         setFilteredBusStops(res.data);
+        setBusStops(res.data);
     }
 
+    const confirmBusRoute = () => {
+        busGroupsDispatch({
+            type: 'SET_BUS_GROUP_BUS_ROUTE',
+            payload: {
+                id: busGroup.id,
+                busRouteId: route,
+                busRoute: {
+                    ...selectedStop,
+                    city: selectedCity,
+                },
+            }
+        })
+        setSnackbarVisible(true);
+    }
+
+    useEffect(() => {
+        if (route && busGroups && !busGroup) {
+            for (let i = 0; i < busGroups.length; i++) {
+                const busGroup = busGroups[i];
+                for (let j = 0; j < busGroup.data.length; j++) {
+                    const busRoute = busGroup.data[j];
+                    console.log(busRoute);
+                    if (busRoute.id === route) {
+                        setBusGroup(busGroup);
+                        if (busRoute.busRoute) {
+                            setSelectedCity(busRoute.busRoute.city)
+                            getStopsFromRoute(busRoute.busRoute.RouteName.En, busRoute.busRoute.city);
+                        }
+                    }
+                }
+            }
+        }
+    }, [route, busGroups])
+
+
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.main}>
-        <Text style={styles.title}>Config</Text>
-        <List.Section title="City">
+    <ScrollView style={GlobalStyles.container}>
+      <View style={GlobalStyles.main}>
+        <List.Section titleStyle={{ color: Theme.colors.primary }}title="City">
             {cities.map((city, index) => {
                 return (
                     <List.Item
@@ -109,11 +156,15 @@ export default function Config() {
             (   
             <>
                 <TextInput
+                    label='Filter Bus Stop'
+                    mode='outlined'
                     placeholder="Search"
                     onChangeText={text => handleBusStopFilter(text)}
                     value={busStopFilter}
+                    style={GlobalStyles.mediumMargin}
+                    
                 />
-                <List.Section title="Destination">
+                <List.Section title="Destination" titleStyle={{ color: Theme.colors.primary }}>
                     <List.Item
                         key={0}
                         title={busStops[0].Stops[busStops[0].Stops.length - 1].StopName.En}
@@ -127,18 +178,20 @@ export default function Config() {
                         style={{ backgroundColor: direction === 1 ? '#ccc' : '#fff' }}
                     />
                 </List.Section>
-                <List.Section title="Bus Stop">
+                <List.Section title="Bus Stop" titleStyle={{ color: Theme.colors.primary }}>
                     {filteredBusStops[direction].Stops.map((stop, index) => {
                         return (
-                            <List.Item
-                                key={index}
-                                title={stop.StopName.En}
-                                onPress={() => {
-                                    console.log(stop);
-                                    setSelectedStop({ ...stop, RouteId: busStops[0].RouteID, RouteName: busStops[0].RouteName })
-                                }}
-                                style={{ backgroundColor: (selectedStop && selectedStop.StopID === stop.StopID) ? '#ccc' : '#fff' }}
-                            />
+                            <View key={index}>
+                                <List.Item
+                                    title={stop.StopName.En}
+                                    onPress={() => {
+                                        console.log(stop);
+                                        setSelectedStop({ ...stop, RouteId: busStops[0].RouteID, RouteName: busStops[0].RouteName })
+                                    }}
+                                    style={{ backgroundColor: (selectedStop && selectedStop.StopID === stop.StopID) ? '#ccc' : '#fff' }}
+                                />
+                                <Divider />
+                            </View>
                         )
                     })
                     }
@@ -147,32 +200,34 @@ export default function Config() {
                     Retrieve EstimatedTimeOfArrival
                 </Button>
                 {estimatedTimeOfArrival && <Text>{Math.floor(estimatedTimeOfArrival / 60)} min</Text>}
+                <Button
+                    disabled={!selectedStop}
+                    onPress={() => { confirmBusRoute() }} mode="contained"
+                >
+                    Confirm
+                </Button>
+                <SnackbarComponent
+                    visible={snackbarVisible}
+                    onDismiss={() => setSnackbarVisible(false)}
+                    caption="Bus route added to group"
+                />
             </>
             )
         }
-        <Link href="/">Home</Link>
+        {
+            busGroup &&
+            <Link
+                href={`/groups/${busGroup.id}`}
+                style={[GlobalStyles.mediumMargin, { paddingTop: 20 }]}
+            >Back</Link>
+        }
       </View>
+        <View
+            style={{
+                margin: 40,
+            }}
+        ></View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-  },
-  main: {
-    flex: 1,
-    justifyContent: "center",
-    maxWidth: 960,
-    marginHorizontal: "auto",
-  },
-  title: {
-    fontSize: 64,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    fontSize: 36,
-    color: "#38434D",
-  },
-});

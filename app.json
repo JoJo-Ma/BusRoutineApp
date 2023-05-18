@@ -5,6 +5,14 @@
       "bundler": "metro"
     },
     "name": "bus-routine-app",
-    "slug": "bus-routine-app"
+    "slug": "bus-routine-app",
+    "extra": {
+      "eas": {
+        "projectId": "ba71b2ce-6efb-4917-854d-01669339fe9e"
+      }
+    },
+    "android": {
+      "package": "com.junashan.busroutineapp"
+    }
   }
 }
