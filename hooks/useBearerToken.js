@@ -5,8 +5,8 @@ import axios from "axios";
 
 const requestData = {
     'grant_type': 'client_credentials',
-    'client_id': CLIENT_ID,
-    'client_secret': CLIENT_SECRET
+    'client_id': process.env.CLIENT_ID ?? CLIENT_ID,
+    'client_secret': process.env.CLIENT_SECRET ?? CLIENT_SECRET,
   };
 
 let requestConfig = {

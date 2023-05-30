@@ -137,6 +137,7 @@ function busGroupsReducer(state, action) {
                 }
                 return busGroup;
             });
+            saveBusGroups(busGroups);
             return {
                 ...state,
                 busGroups,
